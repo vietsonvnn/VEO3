@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import type { VideoConfig, VideoStyle, Language } from '../types';
+import React, { useState, useEffect } from 'react';
+import type { VideoConfig, VideoStyle, Language, VeoModel } from '../types';
 import { CogIcon } from './icons';
 
 interface ConfigFormProps {
@@ -10,9 +10,27 @@ interface ConfigFormProps {
 
 const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showCustomStyle, setShowCustomStyle] = useState(config.style === 'custom');
 
-  const handleChange = (field: keyof VideoConfig, value: any) => {
-    onChange({ ...config, [field]: value });
+  // Auto-calculate scenes when duration changes
+  const handleDurationChange = (minutes: number) => {
+    const totalSeconds = minutes * 60;
+    const calculatedScenes = Math.ceil(totalSeconds / 8); // Each VEO video = 8s
+
+    onChange({
+      ...config,
+      totalDurationMinutes: minutes,
+      sceneCount: calculatedScenes,
+    });
+  };
+
+  const handleStyleChange = (style: VideoStyle) => {
+    setShowCustomStyle(style === 'custom');
+    onChange({
+      ...config,
+      style,
+      customStyle: style === 'custom' ? config.customStyle : undefined,
+    });
   };
 
   const styles: { value: VideoStyle; label: string }[] = [
@@ -21,6 +39,12 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
     { value: 'cartoon', label: 'Cartoon' },
     { value: 'realistic', label: 'Realistic' },
     { value: 'anime', label: 'Anime' },
+    { value: 'noir', label: 'Film Noir' },
+    { value: 'sci-fi', label: 'Sci-Fi' },
+    { value: 'fantasy', label: 'Fantasy' },
+    { value: 'horror', label: 'Horror' },
+    { value: 'romance', label: 'Romance' },
+    { value: 'custom', label: 'Custom (nhập tay)' },
   ];
 
   const languages: { value: Language; label: string }[] = [
@@ -31,6 +55,13 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
     { value: 'zh', label: '中文' },
     { value: 'fr', label: 'Français' },
     { value: 'es', label: 'Español' },
+  ];
+
+  const veoModels: { value: VeoModel; label: string; badge?: string }[] = [
+    { value: 'veo-3.1-fast', label: 'Veo 3.1 - Fast', badge: 'Beta Audio' },
+    { value: 'veo-3.1-quality', label: 'Veo 3.1 - Quality', badge: 'Beta Audio' },
+    { value: 'veo-2-fast', label: 'Veo 2 - Fast', badge: 'Ending Soon' },
+    { value: 'veo-2-quality', label: 'Veo 2 - Quality', badge: 'Ending Soon' },
   ];
 
   return (
@@ -57,7 +88,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
           </label>
           <select
             value={config.mode}
-            onChange={(e) => handleChange('mode', e.target.value)}
+            onChange={(e) => onChange({ ...config, mode: e.target.value as any })}
             className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
           >
             <option value="auto">Auto (No interruption)</option>
@@ -70,20 +101,51 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
           </p>
         </div>
 
-        {/* Style */}
+        {/* Total Duration */}
         <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Total Duration: {config.totalDurationMinutes} minute(s)
+          </label>
+          <input
+            type="range"
+            min="0.5"
+            max="10"
+            step="0.5"
+            value={config.totalDurationMinutes}
+            onChange={(e) => handleDurationChange(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            ≈ {config.sceneCount} scenes x 8s = {config.sceneCount * 8}s total
+          </p>
+        </div>
+
+        {/* Style */}
+        <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-300 mb-2">
             Video Style
           </label>
           <select
             value={config.style}
-            onChange={(e) => handleChange('style', e.target.value as VideoStyle)}
+            onChange={(e) => handleStyleChange(e.target.value as VideoStyle)}
             className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
           >
-            {styles.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            {styles.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
             ))}
           </select>
+
+          {showCustomStyle && (
+            <input
+              type="text"
+              value={config.customStyle || ''}
+              onChange={(e) => onChange({ ...config, customStyle: e.target.value })}
+              placeholder="Nhập style tùy chỉnh (VD: retro 80s music video)"
+              className="w-full mt-2 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+          )}
         </div>
 
         {/* Language */}
@@ -93,65 +155,88 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
           </label>
           <select
             value={config.language}
-            onChange={(e) => handleChange('language', e.target.value as Language)}
+            onChange={(e) => onChange({ ...config, language: e.target.value as Language })}
             className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
           >
-            {languages.map(l => (
-              <option key={l.value} value={l.value}>{l.label}</option>
+            {languages.map((l) => (
+              <option key={l.value} value={l.value}>
+                {l.label}
+              </option>
             ))}
           </select>
-        </div>
-
-        {/* Scene Count */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Number of Scenes: {config.sceneCount}
-          </label>
-          <input
-            type="range"
-            min="1"
-            max="10"
-            value={config.sceneCount}
-            onChange={(e) => handleChange('sceneCount', parseInt(e.target.value))}
-            className="w-full"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Total duration: ~{config.sceneCount * config.durationPerScene}s
-          </p>
         </div>
       </div>
 
       {showAdvanced && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
-          {/* Duration per scene */}
+          {/* Aspect Ratio */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Duration per Scene: {config.durationPerScene}s
+              Tỷ lệ khung hình (Aspect Ratio)
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => onChange({ ...config, aspectRatio: '16:9' })}
+                className={`flex-1 px-3 py-2 rounded-lg border transition ${
+                  config.aspectRatio === '16:9'
+                    ? 'bg-purple-600 border-purple-500 text-white'
+                    : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                📺 Khổ ngang (16:9)
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange({ ...config, aspectRatio: '9:16' })}
+                className={`flex-1 px-3 py-2 rounded-lg border transition ${
+                  config.aspectRatio === '9:16'
+                    ? 'bg-purple-600 border-purple-500 text-white'
+                    : 'bg-gray-800 border-gray-600 text-gray-300 hover:border-gray-500'
+                }`}
+              >
+                📱 Khổ dọc (9:16)
+              </button>
+            </div>
+          </div>
+
+          {/* VEO Model */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Mô hình (Model)
+            </label>
+            <select
+              value={config.veoModel}
+              onChange={(e) => onChange({ ...config, veoModel: e.target.value as VeoModel })}
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+            >
+              {veoModels.map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label} {model.badge && `(${model.badge})`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Veo 3 - Fast không tính tin dụng với người dùng gói Ultra
+            </p>
+          </div>
+
+          {/* Videos per prompt */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Câu trả lời đầu ra cho mỗi câu lệnh: {config.videosPerPrompt}
             </label>
             <input
               type="range"
-              min="3"
-              max="15"
-              value={config.durationPerScene}
-              onChange={(e) => handleChange('durationPerScene', parseInt(e.target.value))}
+              min="1"
+              max="4"
+              value={config.videosPerPrompt}
+              onChange={(e) => onChange({ ...config, videosPerPrompt: parseInt(e.target.value) })}
               className="w-full"
             />
-          </div>
-
-          {/* Resolution */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Resolution
-            </label>
-            <select
-              value={config.resolution}
-              onChange={(e) => handleChange('resolution', e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
-            >
-              <option value="720p">720p (HD)</option>
-              <option value="1080p">1080p (Full HD)</option>
-              <option value="4k">4K (Ultra HD)</option>
-            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Tạo {config.videosPerPrompt} video variant(s) cho mỗi scene để chọn lựa
+            </p>
           </div>
         </div>
       )}

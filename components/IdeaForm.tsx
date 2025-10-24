@@ -14,10 +14,12 @@ interface IdeaFormProps {
 
 const defaultConfig: VideoConfig = {
   style: 'cinematic',
-  language: 'en',
-  sceneCount: 3,
-  durationPerScene: 6,
-  resolution: '720p',
+  language: 'vi',
+  totalDurationMinutes: 1, // 1 minute
+  sceneCount: 8, // Auto-calculated: 1 min * 60s / 8s = 7.5 ≈ 8 scenes
+  aspectRatio: '16:9', // Khổ ngang (default)
+  veoModel: 'veo-3.1-fast', // Veo 3.1 - Fast (default)
+  videosPerPrompt: 1, // 1 video per scene (default)
   mode: 'auto',
 };
 

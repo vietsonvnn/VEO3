@@ -145,23 +145,32 @@ export async function generateCharacterVariations(
 
   for (let i = 0; i < count; i++) {
     try {
+      console.log(`Generating character variation ${i + 1}/${count}...`);
       const variation = await generateCharacterImage(ai, prompt);
       variations.push(variation);
+      console.log(`✓ Variation ${i + 1} generated successfully`);
 
       // Rate limiting between image generations
       if (i < count - 1) {
+        console.log(`Waiting ${API_DELAY / 1000}s before next variation...`);
         await sleep(API_DELAY);
       }
-    } catch (error) {
-      console.error(`Failed to generate variation ${i + 1}:`, error);
-      // Continue with other variations
+    } catch (error: any) {
+      console.error(`✗ Failed to generate variation ${i + 1}:`, error?.message || error);
+
+      // If we have at least one variation, that's enough
+      if (variations.length > 0) {
+        console.log(`Continuing with ${variations.length} variation(s)...`);
+        break;
+      }
     }
   }
 
   if (variations.length === 0) {
-    throw new Error('Failed to generate any character variations.');
+    throw new Error('Failed to generate any character variations. Please check your API key and try again.');
   }
 
+  console.log(`Total variations generated: ${variations.length}`);
   return variations;
 }
 

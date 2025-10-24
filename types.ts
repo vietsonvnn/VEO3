@@ -11,9 +11,22 @@ export type GenerationStatus = {
 
 export type GenerationMode = 'auto' | 'review';
 
-export type VideoStyle = 'cinematic' | 'documentary' | 'cartoon' | 'realistic' | 'anime';
+export type VideoStyle =
+  | 'cinematic'
+  | 'documentary'
+  | 'cartoon'
+  | 'realistic'
+  | 'anime'
+  | 'noir'
+  | 'sci-fi'
+  | 'fantasy'
+  | 'horror'
+  | 'romance'
+  | 'custom';
 
 export type Language = 'en' | 'vi' | 'ja' | 'ko' | 'zh' | 'fr' | 'es';
+
+export type VeoModel = 'veo-3.1-fast' | 'veo-3.1-quality' | 'veo-2-fast' | 'veo-2-quality';
 
 export interface Cookie {
   domain: string;
@@ -36,10 +49,13 @@ export interface ApiConfig {
 
 export interface VideoConfig {
   style: VideoStyle;
+  customStyle?: string; // For when style is 'custom'
   language: Language;
-  sceneCount: number;
-  durationPerScene: number; // seconds
-  resolution: '720p' | '1080p' | '4k';
+  totalDurationMinutes: number; // Total video duration in minutes (user input)
+  sceneCount: number; // Auto-calculated: totalDurationMinutes * 60 / 8
+  aspectRatio: '16:9' | '9:16';
+  veoModel: VeoModel;
+  videosPerPrompt: number; // 1-4, số video variants per scene
   mode: GenerationMode;
 }
 
