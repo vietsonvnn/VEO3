@@ -1,0 +1,126 @@
+BẢN KẾ HOẠCH TOOL AUTOMATION: WHISK → VEO 3.1 (Google AI Studio)
+1. Mục tiêu tổng thể
+Người dùng chỉ nhập ý tưởng, chủ đề.
+
+Tool tự động xử lý toàn bộ quy trình: sinh prompt, tạo nhân vật (Whisk), sinh voice (Polly), sinh video (Veo 3.1).
+
+Tùy chọn cho phép user chỉnh sửa/cấu hình chi tiết mọi bước.
+
+Xuất ra video, metadata, ảnh nhân vật, file voice.
+
+2. Kiến trúc tổng quan
+text
+[User Input UI]
+     ↓
+[Prompt Engine] – Phân tích & chuẩn hóa ý tưởng
+     ↓
+[Whisk AI Integration] – Tạo hình nhân vật, cảnh
+     ↓
+[Voice Synthesis Module] – Amazon Polly (hoặc TTS API khác)
+     ↓
+[Veo 3.1 API Handler] – Sinh video đồng nhất
+     ↓
+[Post-process & Export] – Xuất file/thông báo đến user
+3. Chi tiết từng module & chức năng
+3.1. User Input UI
+Form nhập API Google (Gemini), API Polly (AWS Key & Secret).
+
+Nhập ý tưởng chủ đề (textbox hoặc upload file).
+
+Chọn cấu hình mở rộng (style, ngôn ngữ, số cảnh, thời lượng, cloud lưu trữ, kịch bản thoại, review/auto-export).
+
+3.2. Prompt Engine
+Xử lý ý tưởng sang các trường:
+
+Nhân vật chính/bối cảnh/phong cách/cảm xúc.
+
+Sinh prompt cho Whisk:
+
+“Nam, 35 tuổi, kiểu dáng tóc undercut, áo sơ mi, không khí năng động văn phòng.”
+
+Tự động sinh prompt video cho Veo 3.1 phù hợp.
+
+Tham khảo template & AI prompt guide:
+
+Dùng Gemini Studio API để phân tích, tách ý tưởng → prompt cụ thể các trường dữ liệu.
+
+3.3. Whisk AI Integration (call API)
+Gửi prompt sinh ra sang Whisk API Cloud.
+
+Xử lý nhận ảnh nhân vật.
+
+Cho phép sinh nhiều ảnh/góc hoặc chỉ dùng 1 ảnh đại diện.
+
+Kiểm tra và chuẩn hóa ảnh đầu ra (định dạng PNG/JPG, kích thước đề xuất 512x512 hoặc 1024x1024).
+
+3.4. Voice Synthesis Module
+Nếu user cung cấp script thoại:
+
+Gửi text sang Amazon Polly để nhận file .mp3/.wav theo ngôn ngữ/chất giọng đã chọn.
+
+Nếu để trống:
+
+Dùng module AI gợi ý thoại tự động, sau đó chuyển sang Polly TTS.
+
+Upload file voice lên cloud.
+
+3.5. Veo 3.1 API Handler
+Ghép prompt video từ các đầu vào: prompt + referenceImage + voice_sample_url.
+
+Tạo request JSON gửi lên Gemini API/Vertex AI:
+
+json
+{
+  "model": "veo-3.1-generate-preview",
+  "inputs": {
+    "prompt": "....",
+    "referenceImages": ["..."],
+    "voice": { "voice_sample_url":"...", "language":"vi" }
+  },
+  "output": { "resolution":"1080p", "duration_seconds":8 }
+}
+Xử lý polling nhận video, retry khi lỗi.
+
+3.6. Post-process & Export
+Lưu trữ video đầu ra.
+
+Lưu metadata: prompt, ảnh nhân vật, voice, cấu hình.
+
+Cho phép download/xem trước hoặc tự động xuất sang cloud.
+
+4. Tùy chọn nâng cao
+Cho phép import/extract metadata đầu vào từ file hoặc batch.
+
+Module review trước khi sinh video (cho phép sửa prompt hoặc đổi ảnh nhân vật/trong tool).
+
+Dashboard quản lý các project/cảnh/video xuất ra.
+
+Báo lỗi chi tiết khi API trả kết quả không hợp lệ/thất bại.
+
+5. Đề xuất cấu trúc thư mục dự án (Python/JS/Colab)
+text
+/main.py           # Launch pipeline
+/config.py         # Quản lý cấu hình, key API
+/prompt_engine.py  # Module sinh prompt + xử lý ý tưởng
+/whisk_module.py   # Gọi Whisk/tạo ảnh character
+/voice_module.py   # Gọi Polly/TTS và upload file
+/veo_api.py        # Tích hợp Gemini API gọi video
+/postprocess.py    # Quản lý output, lưu trữ, export
+/ui_frontend/      # Giao diện streamlit hoặc Google AI Studio UI config
+6. Tài liệu tham khảo khi code trên Google AI Studio
+Gemini API Gọi Video
+
+[Whisk Labs API docs] (nếu dùng bản cloud, xem docs chính thức Google Whisk)
+
+Amazon Polly Docs
+
+Google AI Studio hướng dẫn tạo app
+
+Checklist khi code
+Tất cả API key đều mã hóa, bảo mật không lộ trên UI.
+
+Prompts đều có validate đầu vào, tránh “trôi nhân vật”.
+
+Quản lý trạng thái từng bước, cho phép debug dễ dàng.
+
+Tối ưu tốc độ phản hồi bằng batch request, review từng bước, hoặc full-auto.

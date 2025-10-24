@@ -1,0 +1,5 @@
+
+{
+  "name": "Whisk to Veo 3.1 Automation Tool",
+  "description": "An automated content creation pipeline. Users provide an idea, and the tool generates structured prompts, a character image, a voiceover, and a final video using Gemini, Imagen, and Veo models."
+}
