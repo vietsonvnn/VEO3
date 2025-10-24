@@ -1,0 +1,242 @@
+═══════════════════════════════════════════════════════════════
+   🚀 HANDOFF SUMMARY - Cookie Authentication Project
+═══════════════════════════════════════════════════════════════
+
+📅 Date: 2025-10-24
+👤 Previous AI: Claude Code
+📦 Project: Whisk to Veo 3.1 Automation Tool
+🔗 GitHub: https://github.com/vietsonvnn/VEO3
+📍 Branch: main
+💾 Latest Commit: 7b2cdc5
+
+───────────────────────────────────────────────────────────────
+   ✅ WHAT WAS ACCOMPLISHED
+───────────────────────────────────────────────────────────────
+
+1. Cookie Authentication Architecture (1200+ lines)
+   ✅ cookieAuthService.ts - Cookie management
+   ✅ directApiService.ts - Direct API calls (⚠️ wrong endpoints)
+   ✅ hybridApiService.ts - Auto-switch API Key/Cookie
+
+2. UI Integration
+   ✅ ConfigForm: Cookie Auth toggle + UI
+   ✅ SettingsTab: Cookie upload + instructions
+   ✅ App.tsx: Integrated hybrid service
+
+3. Documentation (1200+ lines)
+   ✅ DEBUG_NOTES.md - Detailed debug guide ⭐
+   ✅ QUICK_START_FOR_NEXT_AI.md - Quick start
+   ✅ COOKIE_AUTH_GUIDE.md - User guide
+   ✅ COOKIE_AUTH_UPDATE.md - What's new
+   ✅ IMPLEMENTATION_SUMMARY.md - Technical details
+   ✅ TODO.md - Action items
+
+4. Build & Deploy
+   ✅ TypeScript: 0 errors
+   ✅ Build: Successful (473KB)
+   ✅ Git: Committed & pushed
+   ✅ Dev server: Running on http://localhost:3001
+
+───────────────────────────────────────────────────────────────
+   ❌ CURRENT PROBLEM
+───────────────────────────────────────────────────────────────
+
+🚨 Still getting 429 Quota Exceeded errors!
+
+Reason: Code is calling WRONG API endpoints
+
+Current (WRONG):
+├─ API: generativelanguage.googleapis.com (public API)
+├─ Auth: SAPISIDHASH (Google OAuth)
+└─ Result: ❌ 429 quota errors
+
+Should be (CORRECT):
+├─ API: labs.google/api/v1/... (internal API)
+├─ Auth: NextAuth session token
+└─ Result: ✅ No quota limits (like tool ABC)
+
+───────────────────────────────────────────────────────────────
+   🎯 WHAT NEEDS TO BE DONE
+───────────────────────────────────────────────────────────────
+
+PRIORITY 1: Capture Google Labs API Endpoints (5 min)
+═══════════════════════════════════════════════════════════════
+Method 1 (Browser):
+  1. Open: https://labs.google/fx/tools/flow
+  2. Login: guagency014@test.guagency.io.vn
+  3. F12 → Network tab → Filter: Fetch/XHR
+  4. Generate 1 test video
+  5. Find POST request
+  6. Right-click → Copy as cURL
+  7. Save to: API_CAPTURE.txt
+
+Method 2 (Tool ABC code):
+  1. Find tool ABC source code
+  2. Locate API calling code
+  3. Copy endpoint + headers + body
+  4. Paste into project
+
+Need to capture:
+  ✓ Request URL (e.g., labs.google/api/v1/generate)
+  ✓ Request Method (POST/GET)
+  ✓ Request Headers (especially: Authorization, Cookie)
+  ✓ Request Body format
+  ✓ Response format
+
+PRIORITY 2: Update Code (15 min)
+═══════════════════════════════════════════════════════════════
+File: services/directApiService.ts
+
+Changes needed:
+  1. Line 20-30: Update ENDPOINTS object
+     - Replace generativelanguage.googleapis.com
+     - With labs.google/api/...
+
+  2. Line 100-150: Update makeRequest method
+     - Use NextAuth session token
+     - Add correct headers from capture
+     - Fix request body format
+
+  3. Remove SAPISIDHASH logic (not needed for Labs)
+
+PRIORITY 3: Test (2 min)
+═══════════════════════════════════════════════════════════════
+  npm run build
+  npm run dev
+  → Open http://localhost:3001
+  → Upload cookies (ABC/Whisk_cookie.txt)
+  → Enable Cookie Auth toggle
+  → Generate test video
+  → Check Logs: Should see "✅" not "❌ 429"
+
+───────────────────────────────────────────────────────────────
+   📁 KEY FILES TO READ
+───────────────────────────────────────────────────────────────
+
+⭐ START HERE:
+  1. DEBUG_NOTES.md - Most detailed guide
+  2. QUICK_START_FOR_NEXT_AI.md - Quick overview
+  3. TODO.md - Action checklist
+
+Available Resources:
+  📂 ABC/Whisk_cookie.txt - Labs cookies (ready to use)
+  📂 Flow_cookie.txt - Labs cookies (ready to use)
+  📂 services/directApiService.ts - Main file to fix
+  📂 COOKIE_AUTH_GUIDE.md - User documentation
+
+───────────────────────────────────────────────────────────────
+   💾 PROJECT STATE
+───────────────────────────────────────────────────────────────
+
+Location: /Users/macos/Desktop/whisk-to-veo-3.1-automation-tool
+Git: Clean (all committed and pushed)
+Build: ✅ Successful
+Dev Server: Running on port 3001
+TypeScript: 0 errors
+Tests: Not written yet
+
+Files Added: 10 new files (1500+ lines)
+Files Modified: 7 files (300+ lines)
+Total Impact: ~1800 lines of code
+
+───────────────────────────────────────────────────────────────
+   🔍 DEBUGGING COMMANDS
+───────────────────────────────────────────────────────────────
+
+# Check current endpoint
+grep -A 5 "ENDPOINTS" services/directApiService.ts
+
+# View cookies
+cat ABC/Whisk_cookie.txt | jq
+
+# Start dev server
+npm run dev
+
+# Build
+npm run build
+
+# View git log
+git log --oneline -5
+
+# Check port
+lsof -i :3001
+
+───────────────────────────────────────────────────────────────
+   🎓 CONTEXT FOR NEXT AI
+───────────────────────────────────────────────────────────────
+
+User Goal:
+  Bypass API quota limits (429 errors) by using cookie
+  authentication, similar to another tool (tool ABC) that works.
+
+Why Current Code Doesn't Work:
+  • Tool ABC uses Google Labs internal API (labs.google)
+  • Current code uses public API (generativelanguage.googleapis.com)
+  • Public API still has quota limits even with cookies
+  • Need to switch to internal API
+
+What User Has:
+  ✓ Valid Google Labs cookies (in ABC/Whisk_cookie.txt)
+  ✓ Working tool ABC (as reference)
+  ✓ This project (partially implemented)
+
+What User Needs:
+  ✗ Correct API endpoints (blocked on this!)
+  ✗ Working cookie auth (depends on above)
+  ✗ No more 429 errors
+
+Success Criteria:
+  ✅ Generate video without 429 errors
+  ✅ Use cookies for auth
+  ✅ Same behavior as tool ABC
+
+───────────────────────────────────────────────────────────────
+   💡 QUICKEST PATH TO SUCCESS
+───────────────────────────────────────────────────────────────
+
+Option A: If you can access labs.google (2 min)
+  → Open browser + DevTools → Capture API → Fix code
+  → Total time: ~20 minutes
+
+Option B: If user has tool ABC code (1 min)
+  → Copy API endpoints from tool ABC → Fix code
+  → Total time: ~15 minutes
+
+Option C: Ask user to capture API (0 min for you)
+  → Guide user to capture API themselves
+  → User provides capture → You fix code
+  → Total time: ~10 minutes
+
+───────────────────────────────────────────────────────────────
+   📞 NEXT STEPS
+───────────────────────────────────────────────────────────────
+
+Immediate actions:
+  1. Read DEBUG_NOTES.md
+  2. Read QUICK_START_FOR_NEXT_AI.md
+  3. Capture Labs API endpoints (or ask user)
+  4. Update directApiService.ts
+  5. Test
+
+Expected time to complete: 20-30 minutes
+
+───────────────────────────────────────────────────────────────
+   ✉️ MESSAGE TO USER
+───────────────────────────────────────────────────────────────
+
+All code đã được commit và push lên GitHub!
+
+Để tiếp tục với AI khác:
+  1. Cho AI đọc file: DEBUG_NOTES.md
+  2. AI cần capture Google Labs API endpoints
+  3. Update code theo hướng dẫn
+  4. Test
+
+Hoặc bạn có thể:
+  • Mở labs.google → F12 → Generate video → Copy cURL
+  • Paste vào file API_CAPTURE.txt
+  • Cho AI đọc file đó và fix code
+
+═══════════════════════════════════════════════════════════════
+  🤖 Generated by Claude Code | Session ended: 2025-10-24 22:15
+═══════════════════════════════════════════════════════════════
