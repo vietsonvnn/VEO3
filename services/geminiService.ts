@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type, Modality } from '@google/genai';
 import type { CreativeAssets, Scene, VideoConfig, Language } from '../types';
 import { decode } from '../utils/fileUtils';
+import { logger } from './loggerService';
 
 const PROMPT_ENGINE_MODEL = 'gemini-2.5-flash';
 const IMAGE_GEN_MODEL = 'imagen-4.0-generate-001';
@@ -32,6 +33,16 @@ export async function generateCreativeAssets(
     es: 'Spanish',
   };
 
+  logger.info('🎬 Starting prompt generation', {
+    sceneCount: config.sceneCount,
+    style: config.style,
+    language: config.language,
+  });
+
+  const styleDescription = config.style === 'custom' && config.customStyle
+    ? config.customStyle
+    : config.style;
+
   const prompt = `
     Based on the following idea, generate a set of creative assets for a video.
 
@@ -39,17 +50,18 @@ export async function generateCreativeAssets(
     User provided script: "${userScript || 'Not provided'}"
 
     Video Configuration:
-    - Style: ${config.style}
+    - Style: ${styleDescription}
     - Language: ${languageMap[config.language]}
     - Number of scenes: ${config.sceneCount}
-    - Duration per scene: ${config.durationPerScene} seconds
+    - Duration per scene: 8 seconds (fixed for VEO 3.1)
+    - Total duration: ~${config.totalDurationMinutes} minute(s)
 
     Your tasks:
     1. **characterPrompt**: Create a detailed, visually rich prompt for an image generation model (like Imagen) to create the main character.
-       The character should fit the "${config.style}" style. Describe appearance, clothing, and setting.
+       The character should fit the "${styleDescription}" style. Describe appearance, clothing, and setting.
 
     2. **scenes**: Generate ${config.sceneCount} distinct scenes. For each scene:
-       - videoPrompt: Describe a ${config.durationPerScene}-second cinematic scene in "${config.style}" style
+       - videoPrompt: Describe an 8-second cinematic scene in "${styleDescription}" style
        - voiceScript: Write dialogue/narration in ${languageMap[config.language]}
        - Ensure continuity between scenes
 
@@ -57,6 +69,8 @@ export async function generateCreativeAssets(
 
     Return the response in JSON format according to the provided schema.
   `;
+
+  logger.info('📤 Sending request to Gemini API...');
 
   const response = await ai.models.generateContent({
     model: PROMPT_ENGINE_MODEL,
@@ -104,8 +118,14 @@ export async function generateCreativeAssets(
       }));
     }
 
+    logger.success(`✅ Generated ${parsed.scenes?.length || 0} scenes successfully`, {
+      characterPrompt: parsed.characterPrompt.substring(0, 100) + '...',
+      sceneCount: parsed.scenes?.length,
+    });
+
     return parsed;
   } catch (e) {
+    logger.error('❌ Failed to parse JSON from Gemini', { error: e });
     console.error("Failed to parse JSON from prompt engine:", response.text);
     throw new Error("Could not generate creative plan. The model returned an invalid format.");
   }
