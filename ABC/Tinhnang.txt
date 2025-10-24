@@ -1,0 +1,18 @@
+Đây là tóm tắt các tính năng nổi bật của tool veo 3 theo video:
+
+- **Tạo kịch bản đồng bộ nhân vật:** Có thể đồng bộ hóa các nhân vật trong video một cách tự động và tùy chỉnh.
+- **Tùy chỉnh số phút, số giây, scene:** Người dùng được chọn thời lượng và phân cảnh video theo ý muốn.
+- **Tạo video hàng loạt chạy đa luồng:** Hỗ trợ xử lý và xuất nhiều video cùng lúc để tiết kiệm thời gian.
+- **Upscale (nâng cấp) tự động lên 1080p:** Video sau khi tạo sẽ được nâng cấp chất lượng lên 1080p tự động.
+- **Player xem lại video:** Có cửa sổ để xem lại trước khi tải về, tránh tải video rác.
+- **Download hàng loạt video sau kiểm duyệt:** Chỉ tải về những video đã được kiểm duyệt, tránh rác.
+- **Nối thành 1 video hoàn chỉnh:** Ghép các video nhỏ thành một video tổng thể hoàn chỉnh.
+- **Tạo file SEO gồm tiêu đề, mô tả, tag, prompt thumbnail:** Hữu ích cho việc đăng lên YouTube, không cần nghiên cứu từ khóa, tiết kiệm công sức.
+- **Copy upload lên YouTube:** File SEO có thể copy và đăng lên YouTube dễ dàng.
+- **Tự động tạo và chỉnh sửa phân cảnh, kịch bản:** Có thể nhập chủ đề, thời gian, chọn nhân vật thủ công hoặc AI tự tạo, nhập các thông số chỉ đạo sáng tạo.
+- **Xử lý lỗi, cập nhật và tạo lại video hoặc phân cảnh bị lỗi:** Có chức năng quét lại và sửa những phân cảnh lỗi dễ dàng.
+- **Lưu video tại thư mục đã chọn, nối tất cả video nhanh chóng:** Toàn bộ video được lưu và nối lại siêu tốc.
+
+Tool hiện đang cho miễn phí test, có cả chức năng SEO, tải hàng loạt, tạo thumbnail và hỗ trợ đăng video rất tiện lợi cho người làm nội dung YouTube.[1]
+
+[1](https://www.youtube.com/watch?v=BhX7BhQ3504&t=2s)

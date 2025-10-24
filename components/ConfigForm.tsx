@@ -238,6 +238,60 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ config, onChange }) => {
               Tạo {config.videosPerPrompt} video variant(s) cho mỗi scene để chọn lựa
             </p>
           </div>
+
+          {/* Cookie Authentication Toggle */}
+          <div className="md:col-span-2 border-t border-gray-700 pt-4">
+            <label className="flex items-center space-x-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={config.useCookieAuth}
+                onChange={(e) => onChange({ ...config, useCookieAuth: e.target.checked })}
+                className="w-5 h-5 text-green-600 bg-gray-800 border-gray-600 rounded focus:ring-green-500"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-green-400 transition">
+                    🚀 Bypass Quota Limits với Cookie Auth
+                  </span>
+                  {config.useCookieAuth && (
+                    <span className="px-2 py-0.5 text-xs font-semibold bg-green-600 text-white rounded">ACTIVE</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {config.useCookieAuth
+                    ? '✅ Sử dụng authenticated cookies - Không bị limit quota 429!'
+                    : '⚠️ API Key mode - Có thể bị rate limit (429 errors)'}
+                </p>
+                {config.useCookieAuth && (
+                  <p className="text-xs text-green-400 mt-1 font-medium">
+                    💡 Nhớ upload cookies trong Settings tab trước khi generate
+                  </p>
+                )}
+              </div>
+            </label>
+          </div>
+
+          {/* Character Image Toggle */}
+          <div className="md:col-span-2 border-t border-gray-700 pt-4">
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.useCharacterImage}
+                onChange={(e) => onChange({ ...config, useCharacterImage: e.target.checked })}
+                className="w-5 h-5 text-purple-600 bg-gray-800 border-gray-600 rounded focus:ring-purple-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-300">
+                  Sử dụng ảnh nhân vật (Imagen 4.0)
+                </span>
+                <p className="text-xs text-gray-500">
+                  {config.useCharacterImage
+                    ? '⚠️ Yêu cầu billing enabled - Tạo character reference image với Imagen'
+                    : '✅ Chế độ prompt-only - Không cần Imagen (miễn phí hơn)'}
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
       )}
     </div>

@@ -9,6 +9,11 @@ const STORAGE_KEYS = {
   PROJECTS: 'veo_projects',
 } as const;
 
+const SESSION_KEYS = {
+  API_KEY: 'veo_session_api_key', // Stored in sessionStorage (current tab only)
+  COOKIES: 'veo_session_cookies',
+} as const;
+
 export class StorageService {
   private static instance: StorageService;
 
@@ -21,10 +26,18 @@ export class StorageService {
     return StorageService.instance;
   }
 
-  // API Config (without storing actual API key for security)
+  // API Config - Session storage (persists during tab session only)
   saveApiConfig(config: Partial<ApiConfig>): void {
     try {
-      // Only save non-sensitive data
+      // Save to sessionStorage (lasts only during browser tab session)
+      if (config.apiKey) {
+        sessionStorage.setItem(SESSION_KEYS.API_KEY, config.apiKey);
+      }
+      if (config.cookies) {
+        sessionStorage.setItem(SESSION_KEYS.COOKIES, JSON.stringify(config.cookies));
+      }
+
+      // Save metadata to localStorage
       const safeConfig = {
         hasKey: !!config.apiKey,
         hasCookies: config.cookies && config.cookies.length > 0,
@@ -33,6 +46,23 @@ export class StorageService {
       localStorage.setItem(STORAGE_KEYS.API_CONFIG, JSON.stringify(safeConfig));
     } catch (e) {
       console.error('Failed to save API config', e);
+    }
+  }
+
+  getApiConfig(): ApiConfig | null {
+    try {
+      const apiKey = sessionStorage.getItem(SESSION_KEYS.API_KEY);
+      const cookiesJson = sessionStorage.getItem(SESSION_KEYS.COOKIES);
+
+      if (!apiKey) return null;
+
+      return {
+        apiKey,
+        cookies: cookiesJson ? JSON.parse(cookiesJson) : undefined,
+      };
+    } catch (e) {
+      console.error('Failed to get API config', e);
+      return null;
     }
   }
 
@@ -102,6 +132,9 @@ export class StorageService {
     try {
       Object.values(STORAGE_KEYS).forEach(key => {
         localStorage.removeItem(key);
+      });
+      Object.values(SESSION_KEYS).forEach(key => {
+        sessionStorage.removeItem(key);
       });
     } catch (e) {
       console.error('Failed to clear storage', e);

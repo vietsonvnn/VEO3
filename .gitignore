@@ -36,3 +36,4 @@ dist-ssr
 # Cookie files (sensitive data)
 cookie.txt
 cookies.json
+public/cookie.txt

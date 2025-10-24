@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { SparklesIcon } from './icons';
 import type { VideoConfig } from '../types';
 import ConfigForm from './ConfigForm';
+import { getRandomMockData } from '../utils/mockData';
 
 interface IdeaFormProps {
   onGenerate: (idea: string, script: string, config: VideoConfig) => void;
@@ -21,12 +22,17 @@ const defaultConfig: VideoConfig = {
   veoModel: 'veo-3.1-fast', // Veo 3.1 - Fast (default)
   videosPerPrompt: 1, // 1 video per scene (default)
   mode: 'auto',
+  useCharacterImage: false, // DEFAULT: Prompt-only (no Imagen billing required)
+  useCookieAuth: false, // DEFAULT: API Key mode (enable in Settings if you have cookies)
 };
 
 const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, initialIdea, initialScript, initialConfig, error }) => {
-  const [idea, setIdea] = useState(initialIdea);
-  const [script, setScript] = useState(initialScript);
-  const [config, setConfig] = useState<VideoConfig>(initialConfig || defaultConfig);
+  // If no initial values, use mock data as default
+  const mockDefaults = !initialIdea && !initialScript ? getRandomMockData() : null;
+
+  const [idea, setIdea] = useState(initialIdea || mockDefaults?.idea || '');
+  const [script, setScript] = useState(initialScript || mockDefaults?.script || '');
+  const [config, setConfig] = useState<VideoConfig>(initialConfig || mockDefaults?.config || defaultConfig);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,6 +41,13 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, initialIdea, initialScr
       setIsGenerating(true);
       onGenerate(idea, script, config);
     }
+  };
+
+  const handleLoadMockData = () => {
+    const mockData = getRandomMockData();
+    setIdea(mockData.idea);
+    setScript(mockData.script);
+    setConfig(mockData.config);
   };
 
   return (
@@ -75,11 +88,19 @@ const IdeaForm: React.FC<IdeaFormProps> = ({ onGenerate, initialIdea, initialScr
 
       <ConfigForm config={config} onChange={setConfig} />
 
-      <div className="pt-2">
+      <div className="pt-2 flex gap-4">
+        <button
+          type="button"
+          onClick={handleLoadMockData}
+          className="flex-shrink-0 px-6 py-3 font-medium text-gray-300 bg-gray-700 border border-gray-600 rounded-lg hover:bg-gray-600 transition"
+        >
+          🎲 Load Mock Data
+        </button>
+
         <button
           type="submit"
           disabled={!idea.trim() || isGenerating}
-          className="w-full flex items-center justify-center px-6 py-3 font-semibold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 flex items-center justify-center px-6 py-3 font-semibold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <SparklesIcon className="w-6 h-6 mr-2" />
           {isGenerating ? 'Generating...' : 'Start Creation Pipeline'}

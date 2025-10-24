@@ -135,22 +135,42 @@ export async function generateCreativeAssets(
  * Generates a character image using Imagen.
  */
 export async function generateCharacterImage(ai: GoogleGenAI, prompt: string): Promise<{ base64: string; mimeType: string; }> {
-  const response = await ai.models.generateImages({
+  logger.info('🎨 Generating character image with Imagen 4.0', {
     model: IMAGE_GEN_MODEL,
-    prompt: prompt,
-    config: {
-      numberOfImages: 1,
-      aspectRatio: '1:1',
-      outputMimeType: 'image/png',
-    },
+    promptLength: prompt.length
   });
 
-  if (!response.generatedImages || response.generatedImages.length === 0) {
-    throw new Error('Image generation failed.');
-  }
+  try {
+    const response = await ai.models.generateImages({
+      model: IMAGE_GEN_MODEL,
+      prompt: prompt,
+      config: {
+        numberOfImages: 1,
+        aspectRatio: '1:1',
+        outputMimeType: 'image/png',
+      },
+    });
 
-  const image = response.generatedImages[0].image;
-  return { base64: image.imageBytes, mimeType: image.mimeType || 'image/png' };
+    if (!response.generatedImages || response.generatedImages.length === 0) {
+      logger.error('❌ Imagen returned no images', { response });
+      throw new Error('Image generation failed - no images returned.');
+    }
+
+    const image = response.generatedImages[0].image;
+    logger.success('✅ Character image generated', {
+      mimeType: image.mimeType,
+      sizeKB: Math.round(image.imageBytes.length / 1024)
+    });
+
+    return { base64: image.imageBytes, mimeType: image.mimeType || 'image/png' };
+  } catch (error: any) {
+    logger.error('❌ Imagen generation error', {
+      error: error.message,
+      code: error.code,
+      status: error.status
+    });
+    throw error;
+  }
 }
 
 /**
@@ -163,34 +183,81 @@ export async function generateCharacterVariations(
 ): Promise<Array<{ base64: string; mimeType: string; }>> {
   const variations: Array<{ base64: string; mimeType: string; }> = [];
 
+  logger.info(`🎭 Starting character variation generation (${count} variations)`, {
+    targetCount: count,
+    promptPreview: prompt.substring(0, 100) + '...'
+  });
+
   for (let i = 0; i < count; i++) {
     try {
-      console.log(`Generating character variation ${i + 1}/${count}...`);
+      logger.info(`⏳ Generating variation ${i + 1}/${count}...`);
       const variation = await generateCharacterImage(ai, prompt);
       variations.push(variation);
-      console.log(`✓ Variation ${i + 1} generated successfully`);
+      logger.success(`✅ Variation ${i + 1} generated successfully`);
 
       // Rate limiting between image generations
       if (i < count - 1) {
-        console.log(`Waiting ${API_DELAY / 1000}s before next variation...`);
+        logger.info(`⏱️ Waiting ${API_DELAY / 1000}s before next variation (rate limit protection)...`);
         await sleep(API_DELAY);
       }
     } catch (error: any) {
-      console.error(`✗ Failed to generate variation ${i + 1}:`, error?.message || error);
+      logger.warning(`⚠️ Failed to generate variation ${i + 1}`, {
+        error: error?.message,
+        attemptedCount: i + 1,
+        successfulCount: variations.length
+      });
 
       // If we have at least one variation, that's enough
       if (variations.length > 0) {
-        console.log(`Continuing with ${variations.length} variation(s)...`);
+        logger.warning(`⚠️ Stopping early with ${variations.length} variation(s) (minimum requirement met)`);
         break;
+      }
+
+      // If first attempt failed, try once more with longer delay
+      if (i === 0) {
+        logger.info(`🔄 Retrying first variation after extended delay...`);
+        await sleep(API_DELAY * 2); // 24 seconds
+        try {
+          const variation = await generateCharacterImage(ai, prompt);
+          variations.push(variation);
+          logger.success(`✅ Retry successful for variation ${i + 1}`);
+          if (i < count - 1) await sleep(API_DELAY);
+        } catch (retryError: any) {
+          logger.error(`❌ Retry also failed`, { error: retryError?.message });
+        }
       }
     }
   }
 
   if (variations.length === 0) {
-    throw new Error('Failed to generate any character variations. Please check your API key and try again.');
+    logger.error('❌ Failed to generate ANY character variations', {
+      attemptedCount: count,
+      possibleCauses: [
+        'API key may not have Imagen 4.0 access',
+        'Rate limits exceeded',
+        'Invalid prompt format',
+        'Network/API issues'
+      ],
+      alternatives: [
+        'Try Google Whisk (whisk.labs.google.com) for manual image generation',
+        'Use Gemini API with Imagen access enabled',
+        'Upgrade API plan to enable Imagen 4.0'
+      ]
+    });
+    throw new Error(
+      'Failed to generate any character variations. Please check your API key and try again.\n\n' +
+      'Alternatives:\n' +
+      '• Visit whisk.labs.google.com to generate images manually\n' +
+      '• Enable Imagen 4.0 in your Google AI Studio project\n' +
+      '• Upgrade your API plan if using free tier'
+    );
   }
 
-  console.log(`Total variations generated: ${variations.length}`);
+  logger.success(`✅ Character variation generation complete`, {
+    successfulCount: variations.length,
+    targetCount: count
+  });
+
   return variations;
 }
 
@@ -199,67 +266,129 @@ export async function generateCharacterVariations(
  * Generates speech from text using Gemini TTS.
  */
 export async function generateSpeech(ai: GoogleGenAI, script: string): Promise<{ base64: string; mimeType: string; }> {
-   const response = await ai.models.generateContent({
-        model: TTS_MODEL,
-        contents: [{ parts: [{ text: script }] }],
-        config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: {
-                voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: 'Kore' },
-                },
-            },
+  logger.info('🎤 Generating speech with Gemini TTS', {
+    model: TTS_MODEL,
+    scriptLength: script.length,
+    scriptPreview: script.substring(0, 100) + '...'
+  });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: TTS_MODEL,
+      contents: [{ parts: [{ text: script }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: 'Kore' },
+          },
         },
+      },
     });
 
     const part = response.candidates?.[0]?.content?.parts?.[0];
     if (part?.inlineData?.data) {
-        return { base64: part.inlineData.data, mimeType: part.inlineData.mimeType };
+      logger.success('✅ Speech generated successfully', {
+        mimeType: part.inlineData.mimeType,
+        sizeKB: Math.round(part.inlineData.data.length / 1024)
+      });
+      return { base64: part.inlineData.data, mimeType: part.inlineData.mimeType };
     }
-    
-    throw new Error('Text-to-speech generation failed.');
+
+    logger.error('❌ TTS returned no audio data', { response });
+    throw new Error('Text-to-speech generation failed - no audio data returned.');
+  } catch (error: any) {
+    logger.error('❌ TTS generation error', {
+      error: error.message,
+      code: error.code
+    });
+    throw error;
+  }
 }
 
 
 /**
- * Generates a video using Veo with a reference image.
+ * Generates a video using Veo with optional character reference image.
  */
-export async function generateVideo(ai: GoogleGenAI, prompt: string, imageBase64: string, imageMimeType: string): Promise<{ blob: Blob, url: string }> {
-  let operation = await ai.models.generateVideos({
+export async function generateVideo(
+  ai: GoogleGenAI,
+  prompt: string,
+  imageBase64?: string,
+  imageMimeType?: string,
+  aspectRatio: '16:9' | '9:16' = '16:9'
+): Promise<{ blob: Blob, url: string }> {
+  logger.info('🎬 Starting video generation with Veo', {
     model: VIDEO_GEN_MODEL,
-    prompt: prompt,
-    config: {
-      numberOfVideos: 1,
-      resolution: '720p',
-      aspectRatio: '16:9',
-      referenceImages: [{
-        image: {
-            imageBytes: imageBase64,
-            mimeType: imageMimeType,
-        }
-      }],
-    },
+    promptPreview: prompt.substring(0, 100) + '...',
+    hasCharacterImage: !!imageBase64,
+    aspectRatio
   });
 
-  // Poll for completion
-  while (!operation.done) {
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-    operation = await ai.operations.getVideosOperation({ operation: operation });
-  }
+  try {
+    const config: any = {
+      numberOfVideos: 1,
+      resolution: '720p',
+      aspectRatio: aspectRatio,
+    };
 
-  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-  if (!downloadLink) {
-    throw new Error('Video generation succeeded, but no download link was found.');
-  }
+    // Only add referenceImages if provided
+    if (imageBase64 && imageMimeType) {
+      config.referenceImages = [{
+        image: {
+          imageBytes: imageBase64,
+          mimeType: imageMimeType,
+        }
+      }];
+    }
 
-  const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-  if (!videoResponse.ok) {
-    throw new Error(`Failed to download video file. Status: ${videoResponse.statusText}`);
+    let operation = await ai.models.generateVideos({
+      model: VIDEO_GEN_MODEL,
+      prompt: prompt,
+      config,
+    });
+
+    logger.info('⏳ Video generation in progress, polling for completion...');
+
+    // Poll for completion
+    let pollCount = 0;
+    while (!operation.done) {
+      pollCount++;
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      operation = await ai.operations.getVideosOperation({ operation: operation });
+      logger.info(`⏱️ Still processing... (check ${pollCount})`);
+    }
+
+    logger.success(`✅ Video generation complete after ${pollCount} poll(s)`);
+
+    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+    if (!downloadLink) {
+      logger.error('❌ No download link in response', { operation });
+      throw new Error('Video generation succeeded, but no download link was found.');
+    }
+
+    logger.info('📥 Downloading video file...');
+    const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+    if (!videoResponse.ok) {
+      logger.error('❌ Video download failed', { status: videoResponse.status, statusText: videoResponse.statusText });
+      throw new Error(`Failed to download video file. Status: ${videoResponse.statusText}`);
+    }
+
+    const videoBlob = await videoResponse.blob();
+    const videoUrl = URL.createObjectURL(videoBlob);
+
+    logger.success('✅ Video downloaded and ready', {
+      sizeKB: Math.round(videoBlob.size / 1024),
+      type: videoBlob.type
+    });
+
+    return { blob: videoBlob, url: videoUrl };
+  } catch (error: any) {
+    logger.error('❌ Video generation error', {
+      error: error.message,
+      code: error.code
+    });
+    throw error;
   }
-  
-  const videoBlob = await videoResponse.blob();
-  const videoUrl = URL.createObjectURL(videoBlob);
-  return { blob: videoBlob, url: videoUrl };
 }
 
 /**
@@ -268,11 +397,19 @@ export async function generateVideo(ai: GoogleGenAI, prompt: string, imageBase64
 export async function generateScenesVideos(
   ai: GoogleGenAI,
   scenes: Scene[],
-  characterImageBase64: string,
-  characterImageMimeType: string,
+  aspectRatio: '16:9' | '9:16',
+  characterImageBase64?: string,
+  characterImageMimeType?: string,
   onProgress?: (sceneId: string, status: 'pending' | 'success' | 'error', result?: any) => void
 ): Promise<Scene[]> {
   const updatedScenes: Scene[] = [];
+  const useCharacter = !!characterImageBase64 && !!characterImageMimeType;
+
+  logger.info(`🎬 Starting batch scene generation`, {
+    sceneCount: scenes.length,
+    useCharacterImage: useCharacter,
+    aspectRatio
+  });
 
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i];
@@ -281,6 +418,11 @@ export async function generateScenesVideos(
       // Notify progress
       onProgress?.(scene.id, 'pending');
 
+      logger.info(`📹 Generating scene ${i + 1}/${scenes.length}`, {
+        sceneId: scene.id,
+        promptPreview: scene.videoPrompt.substring(0, 50) + '...'
+      });
+
       // Generate voice
       const audio = await generateSpeech(ai, scene.voiceScript);
       const audioUrl = `data:${audio.mimeType};base64,${audio.base64}`;
@@ -288,14 +430,20 @@ export async function generateScenesVideos(
       // Wait before video generation (rate limiting)
       await sleep(API_DELAY);
 
-      // Generate video
-      const video = await generateVideo(ai, scene.videoPrompt, characterImageBase64, characterImageMimeType);
+      // Generate video (with or without character image)
+      const video = await generateVideo(
+        ai,
+        scene.videoPrompt,
+        characterImageBase64,
+        characterImageMimeType,
+        aspectRatio
+      );
 
       const updatedScene: Scene = {
         ...scene,
         audioUrl,
         videoUrl: video.url,
-        characterImage: `data:${characterImageMimeType};base64,${characterImageBase64}`,
+        characterImage: useCharacter ? `data:${characterImageMimeType};base64,${characterImageBase64}` : null,
         status: 'success',
       };
 

@@ -1,6 +1,8 @@
 
 export type AppState = 'api_key_selection' | 'form' | 'progress' | 'results' | 'scene_review';
 
+export type TabType = 'create' | 'projects' | 'settings' | 'logs';
+
 export type GenerationStep = 'prompting' | 'character' | 'voice' | 'video';
 
 export type StepStatus = 'idle' | 'pending' | 'success' | 'error';
@@ -57,6 +59,8 @@ export interface VideoConfig {
   veoModel: VeoModel;
   videosPerPrompt: number; // 1-4, số video variants per scene
   mode: GenerationMode;
+  useCharacterImage: boolean; // Generate with character reference or prompt-only
+  useCookieAuth: boolean; // NEW: Use cookie authentication to bypass quota (default: false)
 }
 
 export interface Scene {
